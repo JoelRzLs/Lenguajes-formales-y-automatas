@@ -1,42 +1,45 @@
-from collections import deque
 from tabulate import tabulate
 
-
-estados =[]
+estados = []
 alfabeto = []
-simbolo_vacio="e"
-estado_inicial=""
-estado_finales=set()
-transiciones={} 
+simbolo_vacio = "e"
+estado_inicial = ""
+estado_finales = set()
+transiciones = {}
 epsilon_clausuras = {}
-transiciones_afn = {}
-finales_afn = set()
 
 while True:
     print("Ingrese el numero de estados del automata: ")
-    numero_estados = int(input())
+    entrada = input().strip()
+    if not entrada.isdigit():
+        print("Ingresa un numero entero valido")
+        continue
+    numero_estados = int(entrada)
     if numero_estados < 2 or numero_estados > 10:
         print("El numero de estados debe ser mayor o igual a 2 y menor o igual a 10")
         continue
     break
 
-for i in range (numero_estados):
+for i in range(numero_estados):
     estados.append(f"q{i}")
-    print(estados)
-
+print("Estados generados:", estados)
 
 while True:
     print("Ingrese el numero de simbolos del alfabeto: ")
-    numero_simbolos = int(input())
+    entrada = input().strip()
+    if not entrada.isdigit():
+        print("Ingresa un numero entero valido")
+        continue
+    numero_simbolos = int(entrada)
     if numero_simbolos < 1 or numero_simbolos > 4:
-        print("El numero de simbolos debe ser maximo 4")
+        print("El numero de simbolos debe ser entre 1 y 4")
         continue
     break
 
-for i in range (numero_simbolos):
+for i in range(numero_simbolos):
     while True:
         print(f"Ingrese el simbolo {i + 1}: ")
-        print("El simbolo no puede ser el simbolo reservado para la transicion vacia (e)")
+        print(f"El simbolo no puede ser el simbolo reservado para la transicion vacia ({simbolo_vacio})")
         simbolo = input().strip()
         if simbolo == "":
             print("El simbolo no puede estar vacio")
@@ -52,7 +55,7 @@ for i in range (numero_simbolos):
 
 while True:
     print("Ingrese el estado inicial: ")
-    print("Los estados son: ",estados)
+    print("Los estados son: ", estados)
     estado_inicial = input().strip()
 
     if estado_inicial not in estados:
@@ -62,15 +65,19 @@ while True:
 
 while True:
     print("Ingrese el numero de estados finales: ")
-    numero_finales = int(input())
+    entrada = input().strip()
+    if not entrada.isdigit():
+        print("Ingresa un numero entero valido")
+        continue
+    numero_finales = int(entrada)
     if numero_finales < 1 or numero_finales > numero_estados:
         print("El numero de estados finales debe ser mayor o igual a 1 y menor o igual al numero de estados")
         continue
     break
 
-for i in range ( numero_finales):
+for i in range(numero_finales):
     while True:
-        print("Los estados son: ",estados)
+        print("Los estados son: ", estados)
         print(f"Ingrese el estado final {i + 1}: ")
         estado_final = input().strip()
         if estado_final not in estados:
@@ -85,7 +92,7 @@ for i in range ( numero_finales):
 simbolo_transicion = alfabeto + [simbolo_vacio]
 estados_disponibles = ", ".join(estados)
 
-print("Registro de las transiciones del AFN-e")
+print("\nRegistro de las transiciones del AFN-e")
 for estado in estados:
     for simbolo in simbolo_transicion:
         while True:
@@ -94,7 +101,7 @@ for estado in estados:
 
             if entrada_cantidad.isdigit():
                 cantidad = int(entrada_cantidad)
-                if cantidad >= 0 and cantidad <= len(estados):
+                if 0 <= cantidad <= len(estados):
                     break
             print(f"Ingresa un numero valido entre 0 y {len(estados)}")
 
@@ -111,12 +118,14 @@ for estado in estados:
 
         transiciones[(estado, simbolo)] = destinos
 
+
 def mostrar_estado_afd(estado_tupla):
     if len(estado_tupla) == 0:
         return "∅"
     return "{" + ",".join(sorted(list(estado_tupla))) + "}"
 
 
+# 1. Tabla del AFN-e original
 encabezados_afn = ["Estado"] + alfabeto + [simbolo_vacio]
 filas_afn = []
 
@@ -136,11 +145,13 @@ for estado in estados:
 print("\nTabla de transiciones del AFN-e:")
 print(tabulate(filas_afn, headers=encabezados_afn, tablefmt="grid"))
 
+
+# 2. Calculo de e-clausuras
 def epsilon_clausura(estado_base, transiciones, simbolo_vacio):
     clausura = set(estado_base)
-    por_revisar =list(estado_base)
+    por_revisar = list(estado_base)
 
-    while len(por_revisar)>0:
+    while len(por_revisar) > 0:
         actual = por_revisar.pop(0)
         salidas_e = transiciones.get((actual, simbolo_vacio), set())
 
@@ -150,26 +161,27 @@ def epsilon_clausura(estado_base, transiciones, simbolo_vacio):
                 por_revisar.append(siguiente)
     return clausura
 
-print("CALCULO DE LAS e-clausulas DE CADA ESTADO")
+
+print("\nCALCULO DE LAS e-clausulas DE CADA ESTADO")
 for estado in estados:
     clausura = epsilon_clausura([estado], transiciones, simbolo_vacio)
     epsilon_clausuras[estado] = clausura
-    print(f"- e clausura({estado}) = {mostrar_estado_afd(clausura)}")    
+    print(f"- e_clausura({estado}) = {mostrar_estado_afd(clausura)}")
 
 
-
-transiciones_afn_sin_e ={}
+# 3. Eliminacion de transiciones vacias (AFN-e -> AFN)
+transiciones_afn_sin_e = {}
 for estado in estados:
     base_e = epsilon_clausuras[estado]
     for simbolo in alfabeto:
         alcanzables_simbolo = set()
         for q in base_e:
-            salidas = transiciones.get((q,simbolo), set())
+            salidas = transiciones.get((q, simbolo), set())
             for s in salidas:
                 alcanzables_simbolo.add(s)
 
-        destinos_sin_e= epsilon_clausura(alcanzables_simbolo, transiciones, simbolo_vacio)
-        transiciones_afn_sin_e[(estado,simbolo)] = destinos_sin_e
+        destinos_sin_e = epsilon_clausura(alcanzables_simbolo, transiciones, simbolo_vacio)
+        transiciones_afn_sin_e[(estado, simbolo)] = destinos_sin_e
 
 finales_afn_sin_e = set()
 for estado in estados:
@@ -178,10 +190,10 @@ for estado in estados:
             finales_afn_sin_e.add(estado)
             break
 
-print("AFN RESULTANTE SIN e-transiciones(transiciones vacias)")
+print("\nAFN RESULTANTE SIN e-transiciones (transiciones vacias)")
 print("Estado inicial: ->", estado_inicial)
 if len(finales_afn_sin_e) > 0:
-    print("Estados finales: *", ",".join(sorted(list(finales_afn_sin_e))))
+    print("Estados finales: *", ", ".join(sorted(list(finales_afn_sin_e))))
 else:
     print("Estados finales: ninguno")
 
@@ -205,39 +217,7 @@ print("\nTabla de transiciones del AFN sin transiciones vacias:")
 print(tabulate(filas_afn_sin_e, headers=encabezados_afn_sin_e, tablefmt="grid"))
 
 
-estado_inicial_afd= tuple(sorted(epsilon_clausura([estado_inicial], transiciones, simbolo_vacio)))
-estados_afd = [estado_inicial_afd]
-transiciones_afd = {}
-
-indice = 0
-while indice < len(estados_afd):
-    estado_actual_afd = estados_afd[indice]
-
-    for simbolo in alfabeto:
-        destinos_mover = set()
-        for q in estado_actual_afd:
-            salidas = transiciones.get((q, simbolo), set())
-            for s in salidas:
-                destinos_mover.add(s)
-
-        estado_siguiente_afd = tuple(sorted(epsilon_clausura(destinos_mover, transiciones, simbolo_vacio)))
-        transiciones_afd[(estado_actual_afd, simbolo)] = estado_siguiente_afd
-
-        if len(estado_siguiente_afd) > 0 and estado_siguiente_afd not in estados_afd:
-            estados_afd.append(estado_siguiente_afd)
-    indice += 1
-
-estados_finales_afd = []
-for estado_afd in estados_afd:
-    es_final = False
-    for q in estado_afd:
-        if q in estado_finales:
-            es_final = True
-            break
-    if es_final:
-        estados_finales_afd.append(estado_afd)
-
-
+# 4. Determinizacion (AFN -> AFD) por construccion de subconjuntos
 estado_inicial_afd = tuple(sorted(epsilon_clausura([estado_inicial], transiciones, simbolo_vacio)))
 estados_afd = [estado_inicial_afd]
 transiciones_afd = {}
@@ -268,7 +248,6 @@ while indice < len(estados_afd):
 
     indice += 1
 
-
 if hay_vacio and () not in estados_afd:
     estados_afd.append(())
 
@@ -285,19 +264,14 @@ for estado_afd in estados_afd:
     if es_final:
         estados_finales_afd.append(estado_afd)
 
-
-print(" Determinacion de AFN a AFD")
+print("\nDeterminacion de AFN a AFD")
 print("Estado inicial del AFD: ->", mostrar_estado_afd(estado_inicial_afd))
 
-finales_texto = []
-for ef in estados_finales_afd:
-    finales_texto.append(mostrar_estado_afd(ef))
-
+finales_texto = [mostrar_estado_afd(ef) for ef in estados_finales_afd]
 if len(finales_texto) > 0:
-    print("Estados finales del AFD: *", ",".join(finales_texto))
+    print("Estados finales del AFD (subconjuntos): *", ", ".join(finales_texto))
 else:
     print("No hay estados finales en el AFD")
-
 
 encabezados_afd = ["Estado AFD"] + alfabeto
 filas_afd = []
@@ -318,3 +292,66 @@ for estado_afd in estados_afd:
 
 print("\nTabla de transiciones del AFD:")
 print(tabulate(filas_afd, headers=encabezados_afd, tablefmt="grid"))
+
+
+# 5. Validacion de cadenas en el AFD final
+def evaluar_cadena_afd(cadena, estado_inicial_afd, estados_finales_afd, transiciones_afd, alfabeto):
+    # Si algun simbolo de la cadena no pertenece al alfabeto Sigma, se rechaza
+    for simbolo in cadena:
+        if simbolo not in alfabeto:
+            return False, [mostrar_estado_afd(estado_inicial_afd)], f"Simbolo '{simbolo}' fuera del alfabeto {alfabeto}"
+
+    actual = estado_inicial_afd
+    recorrido = [mostrar_estado_afd(actual)]
+
+    for simbolo in cadena:
+        actual = transiciones_afd.get((actual, simbolo), ())
+        recorrido.append(mostrar_estado_afd(actual))
+
+    aceptada = actual in estados_finales_afd
+    return aceptada, recorrido, None
+
+
+print("\n=== VALIDACION DE CADENAS EN EL AFD ===")
+print(f"Alfabeto valido: {alfabeto} (escribe 'e' o deja vacio para probar cadena vacia)")
+
+while True:
+    print("\nIngrese una cadena a validar (o escriba 'salir' para terminar): ")
+    cadena_entrada = input().strip()
+
+    if cadena_entrada.lower() == "salir":
+        break
+
+    # Permitir probar cadena vacia escribiendo 'e' o presionando Enter
+    cadena_a_evaluar = "" if cadena_entrada in ("", simbolo_vacio) else cadena_entrada
+    etiqueta_cadena = "ε (cadena vacia)" if cadena_a_evaluar == "" else cadena_a_evaluar
+
+    aceptada, recorrido, motivo_error = evaluar_cadena_afd(
+        cadena_a_evaluar,
+        estado_inicial_afd,
+        estados_finales_afd,
+        transiciones_afd,
+        alfabeto,
+    )
+
+    print(f"Cadena evaluada: {etiqueta_cadena}")
+    print("Recorrido de estados:", " -> ".join(recorrido))
+    if motivo_error:
+        print(f"Observacion: {motivo_error}")
+    print("Resultado:", "ACEPTADA" if aceptada else "RECHAZADA")
+
+    ##Visualizacion del AFD
+from visualizador_afd import dibujar_afd
+
+print("\nDesea generar la representacion grafica del AFD final? (s/n): ")
+opcion_grafica = input().strip().lower()
+if opcion_grafica == "s":
+    dibujar_afd(
+        estados_afd=estados_afd,
+        alfabeto=alfabeto,
+        transiciones_afd=transiciones_afd,
+        estado_inicial_afd=estado_inicial_afd,
+        estados_finales_afd=estados_finales_afd,
+        nombre_archivo="afd_diagrama.png",
+        mostrar_ventana=True,
+    )
